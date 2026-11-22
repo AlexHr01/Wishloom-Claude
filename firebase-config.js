@@ -1,9 +1,9 @@
-// Paste the values from Firebase (Project settings > Your apps > Web app) between the braces.
-// These values identify your database. They are not passwords; the database rules decide who can read and write.
+// Firebase web app settings. These identify the database; they are not passwords.
+// Access is controlled by the database rules (firebase-rules.json), not by hiding these values.
 window.WISHLIST_FIREBASE = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_AUTH_DOMAIN",
-  databaseURL: "PASTE_DATABASE_URL",
-  projectId: "PASTE_PROJECT_ID",
-  appId: "PASTE_APP_ID"
+  apiKey: "AIzaSyDLXPn91mnqtDXPEdPZZ_r82oeCSkpQNEU",
+  authDomain: "wishloom-7f6af.firebaseapp.com",
+  databaseURL: "https://wishloom-7f6af-default-rtdb.firebaseio.com",
+  projectId: "wishloom-7f6af",
+  appId: "1:674450740629:web:d7eafe40a17eac3c7a529c"
 };
