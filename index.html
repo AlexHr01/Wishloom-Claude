@@ -83,7 +83,10 @@ h1 {
 .sep { width: 1px; height: 16px; background: rgba(255, 255, 255, .18); }
 
 /* Toolbar */
-.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; margin: 30px 0 14px; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 10px; margin: 30px 0 14px; }
+.sect { display: flex; align-items: center; gap: 12px; margin: 0; font: 800 clamp(1.4rem, 1.1rem + 1vw, 1.8rem)/1.1 var(--font); letter-spacing: -.02em; color: #fff; }
+.sect svg { flex: none; color: #A99BF2; }
+.itemcount { padding: 4px 11px; border: 1px solid rgba(255, 255, 255, .2); border-radius: 999px; background: var(--glass); color: var(--muted); font: 500 12px/1.3 var(--font); letter-spacing: 0; white-space: nowrap; }
 .bar .right { display: flex; gap: 10px; flex-wrap: wrap; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px; position: relative;
@@ -275,7 +278,7 @@ select.field option { background: #1A1038; color: #F5F3FF; }
 }
 .done-note { margin: 0; text-align: center; color: var(--grey); font-size: 12px; }
 .done-note p { margin: 0; }
-.done-note .gap { margin-top: 56px; }
+.done-note .gap { margin-top: 0; }
 .endrule { height: 1px; margin: 110px 0 0; padding: 0; border: 0; background: rgba(160, 160, 180, .22); }
 
 .empty { text-align: center; padding: 64px 16px; border: 1px dashed rgba(255, 255, 255, .22); border-radius: 22px; background: rgba(255, 255, 255, .03); }
@@ -326,13 +329,15 @@ select.field option { background: #1A1038; color: #F5F3FF; }
 .tierline { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--muted); }
 .tierline i { width: 10px; height: 10px; border-radius: 50%; background: rgb(var(--t)); }
 .links-edit { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
-.link-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 36px; gap: 8px; align-items: center; }
+.link-row { display: grid; grid-template-columns: minmax(0, .75fr) minmax(0, 1.55fr) 36px; gap: 8px; align-items: center; }
 .link-row .icon-btn { font: 400 20px/1 var(--font); }
 @media (max-width: 520px) {
   .link-row { grid-template-columns: minmax(0, 1fr) 36px; }
   .link-row .icon-btn { grid-column: 2; grid-row: 1 / span 2; }
 }
 .sublbl { margin-top: 14px; }
+.faint { margin-left: 6px; color: var(--grey); font-weight: 400; font-size: 11.5px; opacity: .85; }
+.sublbl2 { display: block; margin: 0 0 6px; color: var(--muted); font-size: 12.5px; font-weight: 600; }
 .photo-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 74px; }
 #photo-status { min-height: 4.6em; }
 .photo-row img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
@@ -377,6 +382,11 @@ select.field option { background: #1A1038; color: #F5F3FF; }
   </header>
 
   <div class="bar">
+    <h2 class="sect">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M12 2.5l2.3 7.2 7.2 2.3-7.2 2.3-2.3 7.2-2.3-7.2L2.5 12l7.2-2.3z"/></svg>
+      <span>My wishlist</span>
+      <span class="itemcount" id="item-count" hidden>0 items</span>
+    </h2>
     <div class="right">
       <button class="btn" id="share" type="button">Share link</button>
       <button class="btn" id="filter-btn" type="button" aria-expanded="false" aria-controls="filters">
@@ -460,10 +470,9 @@ select.field option { background: #1A1038; color: #F5F3FF; }
       <div class="ends"><span>1 · Nice to have</span><span>10 · Need it</span></div>
     </div>
     <div>
-      <span class="lbl" id="links-lbl">Where to find it <span class="opt">(optional)</span></span>
+      <span class="lbl" id="links-lbl">Where to find it <span class="opt">(optional)</span> <span class="faint">Up to 8 links</span></span>
       <div class="links-edit" id="links-edit" role="group" aria-labelledby="links-lbl"></div>
       <button class="btn sm" id="add-link" type="button">+ Add a link</button>
-      <p class="help">Give each link a name, like "Zara jacket". The name shows on the card as clickable text and the web address stays hidden behind it. The address can be a website or an @instagram page. Up to 8.</p>
     </div>
     <div>
       <label class="lbl" for="f-desc">Short description <span class="opt">(optional)</span></label>
@@ -476,15 +485,15 @@ select.field option { background: #1A1038; color: #F5F3FF; }
     </div>
     <div>
       <span class="lbl" id="photo-lbl">Photo <span class="opt">(optional)</span></span>
-      <div class="photo-row">
-        <img id="photo-prev" alt="" hidden referrerpolicy="no-referrer">
-        <input type="file" id="f-photo" accept="image/*" aria-labelledby="photo-lbl">
-        <button class="btn sm" id="photo-remove" type="button" hidden>Remove photo</button>
-      </div>
-      <p class="help">Pick a picture from your device. It is shrunk to fit on the card.</p>
-      <label class="lbl sublbl" for="f-photo-url">Or paste an image link</label>
+      <label class="sublbl2" for="f-photo-url">Paste a URL link</label>
       <input class="field" id="f-photo-url" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://example.com/jacket.jpg">
       <p class="help" id="photo-status" aria-live="polite">Use the direct address of the picture (right-click it, then Copy image address). Some websites block their pictures from showing elsewhere.</p>
+      <label class="sublbl2" for="f-photo">or choose a file</label>
+      <div class="photo-row">
+        <img id="photo-prev" alt="" hidden referrerpolicy="no-referrer">
+        <input type="file" id="f-photo" accept="image/*">
+        <button class="btn sm" id="photo-remove" type="button" hidden>Remove photo</button>
+      </div>
     </div>
     <p class="err" id="form-error" role="alert"></p>
     <div class="sheet-actions">
@@ -508,7 +517,7 @@ select.field option { background: #1A1038; color: #F5F3FF; }
   var grid = $('#grid'), doneGrid = $('#done-grid'), doneSec = $('#done-sec');
   var loadingEl = $('#loading'), emptyEl = $('#empty'), emptyH = $('#empty-h'), emptyP = $('#empty-p'), noMatch = $('#nomatch'), net = $('#net');
   var emptyBtnT = $('#empty-btn-t'), doneEmpty = $('#done-empty'), doneNoMatch = $('#done-nomatch'), doneCnt = $('#done-cnt');
-  var sortEl = $('#sort'), toastEl = $('#toast');
+  var sortEl = $('#sort'), toastEl = $('#toast'), itemCount = $('#item-count');
   var statsEl = $('#stats'), nWait = $('#n-wait'), lWait = $('#l-wait'), nDone = $('#n-done'), lDone = $('#l-done');
   var filterBtn = $('#filter-btn'), filterCount = $('#filter-count'), filtersEl = $('#filters'), chipsEl = $('#tier-chips');
   var overlay = $('#overlay'), form = $('#wish-form'), inTitle = $('#f-title'), inScore = $('#f-score'), outScore = $('#f-score-out');
@@ -863,6 +872,7 @@ select.field option { background: #1A1038; color: #F5F3FF; }
     doneEmpty.hidden = dn.length !== 0;
     doneCnt.textContent = dn.length;
     doneNoMatch.hidden = !(dn.length > 0 && shownDone === 0);
+    itemCount.hidden = !loaded; itemCount.textContent = act.length + (act.length === 1 ? ' item' : ' items');
     nWait.textContent = act.length; lWait.textContent = act.length === 1 ? 'wish waiting' : 'wishes waiting';
     nDone.textContent = dn.length; lDone.textContent = dn.length === 1 ? 'dream come true' : 'dreams come true';
     statsEl.classList.toggle('pending', !loaded);
@@ -976,7 +986,7 @@ select.field option { background: #1A1038; color: #F5F3FF; }
     if (linksEl.children.length >= 8) return null;
     var row = el('div', 'link-row');
     var n = el('input', 'field'), u = el('input', 'field'), x = el('button', 'icon-btn', '×');
-    n.maxLength = 60; n.placeholder = 'Name shown, e.g. Zara jacket'; n.autocomplete = 'off'; n.setAttribute('aria-label', 'Link name'); n.value = name || '';
+    n.maxLength = 60; n.placeholder = 'Link name'; n.autocomplete = 'off'; n.setAttribute('aria-label', 'Link name'); n.value = name || '';
     u.placeholder = 'https://… or @instagram_page'; u.autocomplete = 'off'; u.autocapitalize = 'off'; u.spellcheck = false;
     u.setAttribute('inputmode', 'url'); u.setAttribute('aria-label', 'Link address'); u.value = url || '';
     x.type = 'button'; x.setAttribute('aria-label', 'Remove this link');
@@ -1216,6 +1226,7 @@ select.field option { background: #1A1038; color: #F5F3FF; }
     settingsDoc.onSnapshot(function (snap) {
       var d = snap.exists ? snap.data() : null;
       titleText.textContent = cleanTitle(d && typeof d.title === 'string' ? d.title : '');
+      document.title = titleText.textContent;
     }, function () { /* keep the default title */ });
   })();
 })();
