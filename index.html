@@ -321,6 +321,14 @@ select.field option { background: #1A1038; color: #F5F3FF; }
 .money input { padding-left: 28px; }
 .tierline { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--muted); }
 .tierline i { width: 10px; height: 10px; border-radius: 50%; background: rgb(var(--t)); }
+.links-edit { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.link-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 36px; gap: 8px; align-items: center; }
+.link-row .icon-btn { font: 400 20px/1 var(--font); }
+@media (max-width: 520px) {
+  .link-row { grid-template-columns: minmax(0, 1fr) 36px; }
+  .link-row .icon-btn { grid-column: 2; grid-row: 1 / span 2; }
+}
+.sublbl { margin-top: 14px; }
 .photo-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .photo-row img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
 .photo-row input[type="file"] { flex: 1 1 180px; min-width: 0; color: var(--muted); font: inherit; font-size: 13px; }
@@ -447,9 +455,10 @@ select.field option { background: #1A1038; color: #F5F3FF; }
       <div class="ends"><span>1 · Nice to have</span><span>10 · Need it</span></div>
     </div>
     <div>
-      <label class="lbl" for="f-finds">Where to find it <span class="opt">(optional)</span></label>
-      <textarea class="field" id="f-finds" rows="3" placeholder="https://shop.com/jacket&#10;@instagram_page"></textarea>
-      <p class="help">One per line, up to 8. Websites and @instagram pages become tappable.</p>
+      <span class="lbl" id="links-lbl">Where to find it <span class="opt">(optional)</span></span>
+      <div class="links-edit" id="links-edit" role="group" aria-labelledby="links-lbl"></div>
+      <button class="btn sm" id="add-link" type="button">+ Add a link</button>
+      <p class="help">Give each link a name, like "Zara jacket". The name shows on the card as clickable text and the web address stays hidden behind it. The address can be a website or an @instagram page. Up to 8.</p>
     </div>
     <div>
       <label class="lbl" for="f-desc">Short description <span class="opt">(optional)</span></label>
@@ -463,11 +472,14 @@ select.field option { background: #1A1038; color: #F5F3FF; }
     <div>
       <span class="lbl" id="photo-lbl">Photo <span class="opt">(optional)</span></span>
       <div class="photo-row">
-        <img id="photo-prev" alt="" hidden>
+        <img id="photo-prev" alt="" hidden referrerpolicy="no-referrer">
         <input type="file" id="f-photo" accept="image/*" aria-labelledby="photo-lbl">
         <button class="btn sm" id="photo-remove" type="button" hidden>Remove photo</button>
       </div>
-      <p class="help">Pick a picture of the item. It is shrunk to fit on the card.</p>
+      <p class="help">Pick a picture from your device. It is shrunk to fit on the card.</p>
+      <label class="lbl sublbl" for="f-photo-url">Or paste an image link</label>
+      <input class="field" id="f-photo-url" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://example.com/jacket.jpg">
+      <p class="help" id="photo-status" aria-live="polite">Use the direct address of the picture (right-click it, then Copy image address). Some websites block their pictures from showing elsewhere.</p>
     </div>
     <p class="err" id="form-error" role="alert"></p>
     <div class="sheet-actions">
@@ -495,7 +507,8 @@ select.field option { background: #1A1038; color: #F5F3FF; }
   var statsEl = $('#stats'), nWait = $('#n-wait'), lWait = $('#l-wait'), nDone = $('#n-done'), lDone = $('#l-done');
   var filterBtn = $('#filter-btn'), filterCount = $('#filter-count'), filtersEl = $('#filters'), chipsEl = $('#tier-chips');
   var overlay = $('#overlay'), form = $('#wish-form'), inTitle = $('#f-title'), inScore = $('#f-score'), outScore = $('#f-score-out');
-  var inDesc = $('#f-desc'), inFinds = $('#f-finds'), inPrice = $('#f-price'), tierPrev = $('#tier-preview');
+  var inDesc = $('#f-desc'), linksEl = $('#links-edit'), addLinkBtn = $('#add-link'), inPrice = $('#f-price'), tierPrev = $('#tier-preview');
+  var inPhotoUrl = $('#f-photo-url'), photoStatus = $('#photo-status');
   var inPhoto = $('#f-photo'), photoPrev = $('#photo-prev'), photoRemove = $('#photo-remove');
   var formErr = $('#form-error'), saveBtn = $('#save'), sheetTitle = $('#sheet-title');
   var bar = $('#actionbar'), abCount = $('#ab-count'), abMain = $('#ab-main'), abConfirm = $('#ab-confirm'), abQ = $('#ab-q');
@@ -544,15 +557,20 @@ select.field option { background: #1A1038; color: #F5F3FF; }
 
   /* Shared data is untrusted: clean everything before use */
   var IMG_RE = /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/;
+  var DOMAIN_RE = /^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}(\/\S*)?$/i;
+  function validImgUrl(v) {
+    if (typeof v !== 'string' || v.length > 2000) return false;
+    try { return new URL(v).protocol === 'https:'; } catch (e) { return false; }
+  }
   function clean(id, d) {
     return {
       id: id,
       title: String(d.title || 'Untitled').slice(0, 80),
       score: clamp(Math.round(Number(d.score)) || 5, 1, 10),
       description: typeof d.description === 'string' ? d.description.slice(0, 600) : '',
-      finds: Array.isArray(d.finds) ? d.finds.filter(function (x) { return typeof x === 'string' && x.trim(); }).slice(0, 8).map(function (x) { return x.slice(0, 300); }) : [],
+      finds: Array.isArray(d.finds) ? d.finds.filter(function (x) { return typeof x === 'string' && x.trim(); }).slice(0, 8).map(function (x) { return x.slice(0, 700); }) : [],
       price: typeof d.price === 'number' && isFinite(d.price) && d.price >= 0 ? d.price : null,
-      img: typeof d.img === 'string' && d.img.length < 230000 && IMG_RE.test(d.img) ? d.img : null,
+      img: typeof d.img === 'string' && ((d.img.length < 230000 && IMG_RE.test(d.img)) || validImgUrl(d.img)) ? d.img : null,
       done: d.done === true,
       doneAt: typeof d.doneAt === 'number' ? d.doneAt : null,
       createdAt: typeof d.createdAt === 'number' ? d.createdAt : 0
@@ -626,7 +644,10 @@ select.field option { background: #1A1038; color: #F5F3FF; }
 
     var front = el('div', 'face front');
     var photo = el('div', 'photo'), img = el('img'), ph = el('div', 'ph');
-    img.alt = ''; img.hidden = true; ph.innerHTML = ICON_GIFT; photo.append(img, ph);
+    img.alt = ''; img.hidden = true; img.referrerPolicy = 'no-referrer'; img.loading = 'lazy';
+    img.addEventListener('error', function () { img.dataset.bad = '1'; img.hidden = true; ph.hidden = false; });
+    img.addEventListener('load', function () { delete img.dataset.bad; });
+    ph.innerHTML = ICON_GIFT; photo.append(img, ph);
     var flipF = el('button', 'flipbtn'); flipF.type = 'button'; flipF.setAttribute('aria-expanded', 'false');
     flipF.innerHTML = ICON_FLIP + '<span>Flip</span>';
     var fPill = makePill(), fScore = makeScore();
@@ -695,8 +716,9 @@ select.field option { background: #1A1038; color: #F5F3FF; }
       fScore.set(w.score); bScore.set(w.score);
       fPill.set(w); bPill.set(w);
       if (w.img) {
-        if (img.getAttribute('src') !== w.img) img.src = w.img;
-        img.hidden = false; ph.hidden = true;
+        if (img.getAttribute('src') !== w.img) { delete img.dataset.bad; img.src = w.img; }
+        var bad = img.dataset.bad === '1';
+        img.hidden = bad; ph.hidden = !bad;
       } else {
         img.removeAttribute('src'); img.hidden = true; ph.hidden = false;
       }
@@ -879,8 +901,10 @@ select.field option { background: #1A1038; color: #F5F3FF; }
   }
 
   /* Editor */
+  var PHOTO_HELP = photoStatus.textContent;
   function setPhoto(src) {
     curImg = src;
+    photoStatus.textContent = PHOTO_HELP;
     if (src) { photoPrev.src = src; photoPrev.hidden = false; photoRemove.hidden = false; }
     else { photoPrev.removeAttribute('src'); photoPrev.hidden = true; photoRemove.hidden = true; }
   }
@@ -905,11 +929,62 @@ select.field option { background: #1A1038; color: #F5F3FF; }
     var f = inPhoto.files && inPhoto.files[0];
     if (!f) return;
     formErr.textContent = '';
-    try { setPhoto(await readImage(f)); }
+    try { setPhoto(await readImage(f)); inPhotoUrl.value = ''; }
     catch (e) { formErr.textContent = 'Could not read that image. Try a JPG or PNG.'; }
     inPhoto.value = '';
   });
-  photoRemove.addEventListener('click', function () { setPhoto(null); });
+  photoRemove.addEventListener('click', function () { setPhoto(null); inPhotoUrl.value = ''; });
+  photoPrev.addEventListener('error', function () {
+    if (curImg && curImg.indexOf('data:') !== 0) photoStatus.textContent = 'That link did not load as a picture. Check the address. If you save it anyway, the card shows a placeholder.';
+  });
+  photoPrev.addEventListener('load', function () { photoStatus.textContent = PHOTO_HELP; });
+  var urlTimer = null;
+  function applyPhotoUrl() {
+    var v = inPhotoUrl.value.trim();
+    if (!v) {
+      if (curImg && curImg.indexOf('data:') !== 0) setPhoto(null);
+      else photoStatus.textContent = PHOTO_HELP;
+      return;
+    }
+    if (!validImgUrl(v)) { photoStatus.textContent = 'Use a full address that starts with https://'; return; }
+    setPhoto(new URL(v).href);
+  }
+  inPhotoUrl.addEventListener('input', function () { clearTimeout(urlTimer); urlTimer = setTimeout(applyPhotoUrl, 450); });
+  inPhotoUrl.addEventListener('change', function () { clearTimeout(urlTimer); applyPhotoUrl(); });
+
+  /* Link rows: a name and an address for each */
+  function splitFind(raw) {
+    var t = String(raw).trim(), m = t.match(/https?:\/\/\S+/i);
+    if (m) return { name: t.replace(m[0], '').replace(/^[\s:|–—-]+|[\s:|–—-]+$/g, ''), url: m[0] };
+    if (/^@[A-Za-z0-9._]{1,30}$/.test(t) || DOMAIN_RE.test(t)) return { name: '', url: t };
+    return { name: t, url: '' };
+  }
+  function normalizeUrl(v) {
+    v = v.trim();
+    if (/^@[A-Za-z0-9._]{1,30}$/.test(v)) return 'https://www.instagram.com/' + v.slice(1) + '/';
+    var cand = /^https?:\/\//i.test(v) ? v : (DOMAIN_RE.test(v) ? 'https://' + v : null);
+    if (!cand || /\s/.test(cand)) return null;
+    try { var u = new URL(cand); return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : null; } catch (e) { return null; }
+  }
+  function syncAddLink() { addLinkBtn.disabled = linksEl.children.length >= 8; }
+  function addLinkRow(name, url) {
+    if (linksEl.children.length >= 8) return null;
+    var row = el('div', 'link-row');
+    var n = el('input', 'field'), u = el('input', 'field'), x = el('button', 'icon-btn', '×');
+    n.maxLength = 60; n.placeholder = 'Name shown, e.g. Zara jacket'; n.autocomplete = 'off'; n.setAttribute('aria-label', 'Link name'); n.value = name || '';
+    u.placeholder = 'https://… or @instagram_page'; u.autocomplete = 'off'; u.autocapitalize = 'off'; u.spellcheck = false;
+    u.setAttribute('inputmode', 'url'); u.setAttribute('aria-label', 'Link address'); u.value = url || '';
+    x.type = 'button'; x.setAttribute('aria-label', 'Remove this link');
+    x.addEventListener('click', function () {
+      row.remove();
+      if (!linksEl.children.length) addLinkRow('', '');
+      syncAddLink();
+    });
+    row.append(n, u, x); linksEl.append(row); syncAddLink();
+    return n;
+  }
+  addLinkBtn.addEventListener('click', function () { var n = addLinkRow('', ''); if (n) n.focus(); });
+
 
   function parseNum(s) {
     s = s.trim().replace(',', '.');
@@ -934,10 +1009,14 @@ select.field option { background: #1A1038; color: #F5F3FF; }
     inTitle.value = w ? w.title : '';
     inScore.value = w ? w.score : 7; outScore.textContent = inScore.value;
     inDesc.value = w ? w.description : '';
-    inFinds.value = w ? w.finds.join('\n') : '';
+    linksEl.replaceChildren();
+    (w ? w.finds : []).forEach(function (f) { var sp = splitFind(f); addLinkRow(sp.name, sp.url); });
+    if (!linksEl.children.length) addLinkRow('', '');
     inPrice.value = w && w.price != null ? w.price : '';
     updateTierPreview();
+    clearTimeout(urlTimer);
     setPhoto(w ? w.img : null);
+    inPhotoUrl.value = w && w.img && w.img.indexOf('data:') !== 0 ? w.img : '';
     overlay.hidden = false;
     setTimeout(function () { inTitle.focus(); }, 30);
   }
@@ -971,14 +1050,31 @@ select.field option { background: #1A1038; color: #F5F3FF; }
     if (!title) { formErr.textContent = 'Give the item a name.'; inTitle.focus(); return; }
     var price = parseNum(inPrice.value);
     if (Number.isNaN(price)) { formErr.textContent = 'The price must be a number, like 45 or 12.50.'; inPrice.focus(); return; }
-    var lines = inFinds.value.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 8);
+    var lines = [], rows = linksEl.children;
+    for (var i = 0; i < rows.length; i++) {
+      var ins = rows[i].querySelectorAll('input');
+      var nm = ins[0].value.replace(/https?:\/\/\S*/gi, '').replace(/\s+/g, ' ').trim().slice(0, 60), raw = ins[1].value.trim();
+      if (!nm && !raw) continue;
+      if (!raw) { lines.push(nm); continue; }
+      var href = normalizeUrl(raw);
+      if (!href || href.length > 500) {
+        formErr.textContent = 'Link ' + (i + 1) + ' is not a valid address. Use https://… or an @instagram page.';
+        ins[1].focus(); return;
+      }
+      lines.push(nm ? nm + ' ' + href : href);
+    }
+    var imgUrl = inPhotoUrl.value.trim(), imgOut = curImg;
+    if (imgUrl) {
+      if (!validImgUrl(imgUrl)) { formErr.textContent = 'The image link must be a full address that starts with https://'; inPhotoUrl.focus(); return; }
+      imgOut = new URL(imgUrl).href;
+    }
     var data = {
       title: title.slice(0, 80),
       score: clamp(parseInt(inScore.value, 10) || 7, 1, 10),
       description: inDesc.value.trim().slice(0, 500),
       finds: lines,
       price: price,
-      img: curImg,
+      img: imgOut,
       updatedAt: Date.now()
     };
     saving = true; saveBtn.disabled = true; formErr.textContent = '';
