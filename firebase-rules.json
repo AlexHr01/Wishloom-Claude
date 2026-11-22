@@ -1,0 +1,17 @@
+{
+  "rules": {
+    "lists": {
+      "$secret": {
+        ".read": "$secret.length >= 24",
+        ".write": "$secret.length >= 24",
+        "wishes": {
+          "$id": {
+            "title": { ".validate": "newData.isString() && newData.val().length <= 80" },
+            "score": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10" },
+            "img": { ".validate": "newData.val() == null || (newData.isString() && newData.val().length < 230000)" }
+          }
+        }
+      }
+    }
+  }
+}
