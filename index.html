@@ -695,6 +695,7 @@ select.field option { background: #1A1038; color: #F5F3FF; }
 
     function setFlip(on) {
       card.classList.toggle('is-flipped', on);
+      if (on) { card.style.removeProperty('--rx'); card.style.removeProperty('--ry'); }
       front.inert = on; back.inert = !on;
       flipF.setAttribute('aria-expanded', String(on));
       setTimeout(function () { (on ? flipBack : flipF).focus({ preventScroll: true }); }, 350);
@@ -705,7 +706,7 @@ select.field option { background: #1A1038; color: #F5F3FF; }
     markB.addEventListener('click', function () { toggleMark(obj.data.id); });
 
     card.addEventListener('pointermove', function (e) {
-      if (reduce || e.pointerType === 'touch') return;
+      if (reduce || e.pointerType === 'touch' || card.classList.contains('is-flipped')) return;
       var r = card.getBoundingClientRect();
       var px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
       var flipped = card.classList.contains('is-flipped');
